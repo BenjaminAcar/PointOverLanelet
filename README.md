@@ -1,77 +1,22 @@
-# lsa-return-lane
-
-## Create the image
+This code is used, to determine whether a certain point is over a lanelet or not. The lanelets are provided by a osm file.
 
 Note: The following instructions look weird, you may ask yourself: Why did he not just created a Dockerfile, doing all this? I tried, for some reasons then the lanelet2 library is not working properly. So I had to gone the slow way.
 
-Login to the infra node
+First, create a Docker container with the lanelet library installed.
 ```
-docker login 
 sudo docker run -p 34568:34568 -it --rm majkshkurti/lanelet2 /bin/bash
 ```
-Now create files for the lanelet.py, lanelet2_map.osm and server.py and paste the content of the files inside this repository in the files respectively.
+Now create files for the lanelet.py, lanelet2_map.osm and server.py and paste the content of the files inside this repository in the created files respectively. For the lanelet2_map.osm file put the osm data of your map inside.
+
 At the end, just run the server.py with
 ```
 python server.py
 ```
 
-In a second terminal login again to the infra node.
+The server.py contains the code for running a server. By sending requests to the server, the functionality can be triggered. The code to check whether the point is over a lanelet or not is in lanelet.py.
 
-Now find out the container ID with "docker ps" and freeze in the running container image by running:
+You can test the code with the following command
 ```
-docker commit {<container_id>} lanelet2map
-```
-
-Now push that image to the registry:
-```
-sudo docker login infra.bi.dai-lab.de:5000
-docker tag lanelet2map infra.bi.dai-lab.de:5000/lanelet2map
-docker push infra.bi.dai-lab.de:5000/lanelet2map
-```
-
-If you run a new lanelet2ap container, you can test it with:
-```
-sudo docker run -p 34568:34568 -it --rm lanelet2map /bin/bash
-python server.py
 curl -H "lat: 52.5149544484" -H "lon: 13.35700072439" http://localhost:34568/is_over_lanelet
 ```
-Based on our current osm file the output should be the Lanelet ID: 12054.
-
-
-
-## Deployment Kubernetes
-The deployment is a bit special, because all our pods need to be initialized with the python server.py command, otherwise it will not work.
-This is the yaml:
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
- name: lanelet2map-deployment
- namespace: sensors
- labels:
-   app: lanelet2map
-spec:
- replicas: 3
- selector:
-   matchLabels:
-     app: lanelet2map
- template:
-   metadata:
-     labels:
-       app: lanelet2map
-   spec:
-     imagePullSecrets:
-     - name: my-registry-key
-     containers:
-     - name: lanelet2map
-       image: infra.bi.dai-lab.de:5000/lanelet2map
-       command: ["python", "~/workspace/server.py"]
-       imagePullPolicy: Always
-       ports:
-       - containerPort: 34568
-```
-
-Now just run
-```
-kubectl apply -f <file.yaml>
-```
+Depending on your lat/long and your osm file, an lanelet ID will be returned, or not.
