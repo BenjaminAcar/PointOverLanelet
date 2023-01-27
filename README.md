@@ -20,3 +20,8 @@ You can test the code with the following command
 curl -H "lat: 52.5149544484" -H "lon: 13.35700072439" http://localhost:34568/is_over_lanelet
 ```
 Depending on your lat/long and your osm file, an lanelet ID will be returned, or not.
+
+
+
+
+Note: The MercatorProjector is used to translate the lat/lon coordinates to the internal coordinates of the lanelet library. For some reasons lanelet is not using UTM, like expected. Therefore we used the MercatorProjector projection.
